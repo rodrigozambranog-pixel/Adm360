@@ -1,133 +1,31 @@
-const config = {
-  edificios: {
-    title: 'Edificios', subtitle: 'Registro y control de edificios',
-    fields: ['nombre','direccion','ciudad','estado']
-  },
-  personas: {
-    title: 'Personas', subtitle: 'Propietarios, residentes, proveedores y empleados',
-    fields: ['nombre','documento','correo','telefono','tipo']
-  },
-  empleados: {
-    title: 'RRHH', subtitle: 'Gestión básica de empleados, turnos y cargos',
-    fields: ['nombre','cargo','edificio','turno','estado']
-  },
-  tickets: {
-    title: 'Tickets', subtitle: 'Incidencias y solicitudes operativas',
-    fields: ['titulo','edificio','prioridad','estado','responsable']
-  },
-  mantenimientos: {
-    title: 'Mantenimiento', subtitle: 'Mantenciones preventivas y correctivas',
-    fields: ['equipo','edificio','tipo','fecha','estado']
-  }
-};
-
-let current = 'dashboard';
-
-const $ = (selector) => document.querySelector(selector);
-const api = async (url, options = {}) => {
-  const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...options });
-  return res.json();
-};
-
-$('#loginForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const body = Object.fromEntries(new FormData(e.target).entries());
-  const result = await api('/api/login', { method: 'POST', body: JSON.stringify(body) });
-  if (result.token) {
-    localStorage.setItem('sige360_token', result.token);
-    $('#login').classList.add('hidden');
-    $('#app').classList.remove('hidden');
-    loadDashboard();
-  }
-});
-
-$('#logout').addEventListener('click', () => {
-  localStorage.removeItem('sige360_token');
-  location.reload();
-});
-
-document.querySelectorAll('aside button').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('aside button').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    current = btn.dataset.section;
-    if (current === 'dashboard') loadDashboard(); else loadCrud(current);
-  });
-});
-
-async function loadDashboard() {
-  $('#title').textContent = 'Dashboard';
-  $('#subtitle').textContent = 'Vista general del sistema';
-  $('#dashboard').classList.remove('hidden');
-  $('#crud').classList.add('hidden');
-  const resumen = await api('/api/resumen');
-  $('#dashboard').innerHTML = `
-    <div class="cards">
-      ${card('Edificios activos', resumen.edificios)}
-      ${card('Personas registradas', resumen.personas)}
-      ${card('Empleados activos', resumen.empleados)}
-      ${card('Tickets abiertos', resumen.ticketsAbiertos)}
-      ${card('Mantenciones pendientes', resumen.mantenimientosPendientes)}
-    </div>
-    <div class="panel">
-      <h2>Qué incluye este MVP</h2>
-      <p style="color:var(--muted); margin-top:10px; line-height:1.6">
-        Esta versión ya permite registrar datos reales, guardarlos localmente en JSON y operar los módulos base.
-        El siguiente salto técnico es migrar la data a PostgreSQL, agregar autenticación real, permisos y gestión documental.
-      </p>
-    </div>`;
-}
-
-function card(label, value) {
-  return `<div class="card"><span class="badge">MVP</span><p>${label}</p><div class="num">${value}</div></div>`;
-}
-
-async function loadCrud(resource) {
-  const cfg = config[resource];
-  $('#title').textContent = cfg.title;
-  $('#subtitle').textContent = cfg.subtitle;
-  $('#dashboard').classList.add('hidden');
-  $('#crud').classList.remove('hidden');
-  const rows = await api(`/api/${resource}`);
-  $('#crud').innerHTML = `
-    <div class="grid">
-      <div class="panel">
-        <h2>Crear registro</h2>
-        <form class="form" id="createForm">
-          ${cfg.fields.map(field => `<label>${label(field)}<input name="${field}" required /></label>`).join('')}
-          <button>Guardar</button>
-        </form>
-      </div>
-      <div class="panel">
-        <h2>Listado</h2>
-        <div style="overflow:auto; margin-top:12px">${table(resource, cfg.fields, rows)}</div>
-      </div>
-    </div>`;
-  $('#createForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const body = Object.fromEntries(new FormData(e.target).entries());
-    await api(`/api/${resource}`, { method: 'POST', body: JSON.stringify(body) });
-    loadCrud(resource);
-  });
-  document.querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', async () => {
-    await api(`/api/${resource}/${btn.dataset.delete}`, { method: 'DELETE' });
-    loadCrud(resource);
-  }));
-}
-
-function table(resource, fields, rows) {
-  if (!rows.length) return '<p>No hay registros todavía.</p>';
-  return `<table><thead><tr>${fields.map(f => `<th>${label(f)}</th>`).join('')}<th></th></tr></thead><tbody>
-    ${rows.map(row => `<tr>${fields.map(f => `<td>${row[f] || ''}</td>`).join('')}<td><button class="delete" data-delete="${row.id}">Eliminar</button></td></tr>`).join('')}
-  </tbody></table>`;
-}
-
-function label(text) {
-  return text.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
-}
-
-if (localStorage.getItem('sige360_token')) {
-  $('#login').classList.add('hidden');
-  $('#app').classList.remove('hidden');
-  loadDashboard();
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; background: #f4f6fb; color: #111827; }
+.app { display: flex; min-height: 100vh; }
+.sidebar { width: 250px; background: #101827; color: white; padding: 28px; }
+.sidebar h1 { margin: 0; font-size: 30px; }
+.sidebar p { color: #9ca3af; margin-bottom: 30px; }
+.sidebar nav { display: grid; gap: 12px; }
+.sidebar a { padding: 12px; border-radius: 12px; background: rgba(255,255,255,.06); color: white; }
+.content { flex: 1; padding: 32px; }
+.hero { background: white; border-radius: 24px; padding: 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 30px rgba(15,23,42,.06); }
+.hero h2 { margin: 10px 0; font-size: 34px; }
+.hero p { color: #64748b; max-width: 650px; }
+.badge { background: #dbeafe; color: #1d4ed8; padding: 7px 12px; border-radius: 999px; font-weight: bold; }
+button { background: #2563eb; color: white; border: 0; padding: 14px 22px; border-radius: 14px; font-weight: bold; }
+.cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin: 24px 0; }
+.card, .panel { background: white; border-radius: 20px; padding: 22px; box-shadow: 0 10px 30px rgba(15,23,42,.05); }
+.card span { color: #64748b; display: block; }
+.card strong { display: block; font-size: 34px; margin-top: 10px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.panel h3 { margin-top: 0; }
+.wide { grid-column: span 2; }
+.row { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e5e7eb; padding: 16px 0; gap: 16px; }
+.row small { display: block; color: #64748b; margin-top: 5px; }
+.row span { background: #f1f5f9; padding: 8px 10px; border-radius: 999px; font-size: 13px; }
+@media (max-width: 900px) {
+  .app { flex-direction: column; }
+  .sidebar { width: 100%; }
+  .cards, .grid { grid-template-columns: 1fr; }
+  .wide { grid-column: auto; }
+  .hero { flex-direction: column; align-items: flex-start; gap: 16px; }
 }

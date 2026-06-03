@@ -1,0 +1,88 @@
+import './styles.css';
+
+const edificios = [
+  { nombre: 'Torre Central', unidades: 48, estado: 'Activo' },
+  { nombre: 'Edificio Norte', unidades: 32, estado: 'Activo' },
+  { nombre: 'Condominio Sur', unidades: 86, estado: 'En revisión' }
+];
+
+const tickets = [
+  { titulo: 'Fuga en piso 4', prioridad: 'Alta', estado: 'En proceso' },
+  { titulo: 'Mantención ascensor', prioridad: 'Media', estado: 'Pendiente' },
+  { titulo: 'Cambio luminarias', prioridad: 'Baja', estado: 'Abierto' }
+];
+
+const empleados = [
+  { nombre: 'Carlos Muñoz', cargo: 'Conserje', turno: 'Noche' },
+  { nombre: 'Ana Pérez', cargo: 'Administración', turno: 'Día' },
+  { nombre: 'Luis Soto', cargo: 'Mantención', turno: 'Día' }
+];
+
+export default function Home() {
+  return (
+    <main className="app">
+      <aside className="sidebar">
+        <h1>Adm360</h1>
+        <p>Gestión integral</p>
+        <nav>
+          <a>Dashboard</a>
+          <a>Edificios</a>
+          <a>RRHH</a>
+          <a>Tickets</a>
+          <a>Mantenimiento</a>
+          <a>Documentos</a>
+        </nav>
+      </aside>
+
+      <section className="content">
+        <header className="hero">
+          <div>
+            <span className="badge">MVP</span>
+            <h2>Panel de administración</h2>
+            <p>Primera versión para mostrar gestión de edificios, personal, tickets y mantenimiento.</p>
+          </div>
+          <button>Nuevo ticket</button>
+        </header>
+
+        <section className="cards">
+          <div className="card"><span>Edificios</span><strong>3</strong></div>
+          <div className="card"><span>Empleados</span><strong>24</strong></div>
+          <div className="card"><span>Tickets abiertos</span><strong>12</strong></div>
+          <div className="card"><span>Mantenciones</span><strong>7</strong></div>
+        </section>
+
+        <section className="grid">
+          <div className="panel">
+            <h3>Edificios</h3>
+            {edificios.map((item) => (
+              <div className="row" key={item.nombre}>
+                <div><strong>{item.nombre}</strong><small>{item.unidades} unidades</small></div>
+                <span>{item.estado}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="panel">
+            <h3>Tickets recientes</h3>
+            {tickets.map((item) => (
+              <div className="row" key={item.titulo}>
+                <div><strong>{item.titulo}</strong><small>Prioridad {item.prioridad}</small></div>
+                <span>{item.estado}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="panel wide">
+            <h3>Recursos humanos</h3>
+            {empleados.map((item) => (
+              <div className="row" key={item.nombre}>
+                <div><strong>{item.nombre}</strong><small>{item.cargo}</small></div>
+                <span>Turno {item.turno}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      </section>
+    </main>
+  );
+}
