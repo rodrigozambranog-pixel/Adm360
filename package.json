@@ -1,0 +1,133 @@
+const config = {
+  edificios: {
+    title: 'Edificios', subtitle: 'Registro y control de edificios',
+    fields: ['nombre','direccion','ciudad','estado']
+  },
+  personas: {
+    title: 'Personas', subtitle: 'Propietarios, residentes, proveedores y empleados',
+    fields: ['nombre','documento','correo','telefono','tipo']
+  },
+  empleados: {
+    title: 'RRHH', subtitle: 'Gestión básica de empleados, turnos y cargos',
+    fields: ['nombre','cargo','edificio','turno','estado']
+  },
+  tickets: {
+    title: 'Tickets', subtitle: 'Incidencias y solicitudes operativas',
+    fields: ['titulo','edificio','prioridad','estado','responsable']
+  },
+  mantenimientos: {
+    title: 'Mantenimiento', subtitle: 'Mantenciones preventivas y correctivas',
+    fields: ['equipo','edificio','tipo','fecha','estado']
+  }
+};
+
+let current = 'dashboard';
+
+const $ = (selector) => document.querySelector(selector);
+const api = async (url, options = {}) => {
+  const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...options });
+  return res.json();
+};
+
+$('#loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const body = Object.fromEntries(new FormData(e.target).entries());
+  const result = await api('/api/login', { method: 'POST', body: JSON.stringify(body) });
+  if (result.token) {
+    localStorage.setItem('sige360_token', result.token);
+    $('#login').classList.add('hidden');
+    $('#app').classList.remove('hidden');
+    loadDashboard();
+  }
+});
+
+$('#logout').addEventListener('click', () => {
+  localStorage.removeItem('sige360_token');
+  location.reload();
+});
+
+document.querySelectorAll('aside button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('aside button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    current = btn.dataset.section;
+    if (current === 'dashboard') loadDashboard(); else loadCrud(current);
+  });
+});
+
+async function loadDashboard() {
+  $('#title').textContent = 'Dashboard';
+  $('#subtitle').textContent = 'Vista general del sistema';
+  $('#dashboard').classList.remove('hidden');
+  $('#crud').classList.add('hidden');
+  const resumen = await api('/api/resumen');
+  $('#dashboard').innerHTML = `
+    <div class="cards">
+      ${card('Edificios activos', resumen.edificios)}
+      ${card('Personas registradas', resumen.personas)}
+      ${card('Empleados activos', resumen.empleados)}
+      ${card('Tickets abiertos', resumen.ticketsAbiertos)}
+      ${card('Mantenciones pendientes', resumen.mantenimientosPendientes)}
+    </div>
+    <div class="panel">
+      <h2>Qué incluye este MVP</h2>
+      <p style="color:var(--muted); margin-top:10px; line-height:1.6">
+        Esta versión ya permite registrar datos reales, guardarlos localmente en JSON y operar los módulos base.
+        El siguiente salto técnico es migrar la data a PostgreSQL, agregar autenticación real, permisos y gestión documental.
+      </p>
+    </div>`;
+}
+
+function card(label, value) {
+  return `<div class="card"><span class="badge">MVP</span><p>${label}</p><div class="num">${value}</div></div>`;
+}
+
+async function loadCrud(resource) {
+  const cfg = config[resource];
+  $('#title').textContent = cfg.title;
+  $('#subtitle').textContent = cfg.subtitle;
+  $('#dashboard').classList.add('hidden');
+  $('#crud').classList.remove('hidden');
+  const rows = await api(`/api/${resource}`);
+  $('#crud').innerHTML = `
+    <div class="grid">
+      <div class="panel">
+        <h2>Crear registro</h2>
+        <form class="form" id="createForm">
+          ${cfg.fields.map(field => `<label>${label(field)}<input name="${field}" required /></label>`).join('')}
+          <button>Guardar</button>
+        </form>
+      </div>
+      <div class="panel">
+        <h2>Listado</h2>
+        <div style="overflow:auto; margin-top:12px">${table(resource, cfg.fields, rows)}</div>
+      </div>
+    </div>`;
+  $('#createForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const body = Object.fromEntries(new FormData(e.target).entries());
+    await api(`/api/${resource}`, { method: 'POST', body: JSON.stringify(body) });
+    loadCrud(resource);
+  });
+  document.querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', async () => {
+    await api(`/api/${resource}/${btn.dataset.delete}`, { method: 'DELETE' });
+    loadCrud(resource);
+  }));
+}
+
+function table(resource, fields, rows) {
+  if (!rows.length) return '<p>No hay registros todavía.</p>';
+  return `<table><thead><tr>${fields.map(f => `<th>${label(f)}</th>`).join('')}<th></th></tr></thead><tbody>
+    ${rows.map(row => `<tr>${fields.map(f => `<td>${row[f] || ''}</td>`).join('')}<td><button class="delete" data-delete="${row.id}">Eliminar</button></td></tr>`).join('')}
+  </tbody></table>`;
+}
+
+function label(text) {
+  return text.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+if (localStorage.getItem('sige360_token')) {
+  $('#login').classList.add('hidden');
+  $('#app').classList.remove('hidden');
+  loadDashboard();
+}
